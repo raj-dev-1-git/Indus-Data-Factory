@@ -1,0 +1,14 @@
+{
+  "summary": "The audio scene contains a conversation in Tamil.",
+  "environment": "An indoor space, likely a room or office environment with typical background sounds of an urban setting.",
+  "events": [
+    {
+      "type": "speech | sound_event",
+      "content": "சுவிஸ்நாட்டின் வாவரிங்கா வெற்றி",
+      "time": "0.00-6.10",
+      "confidence": 0.402
+    }
+  ],
+  "inference": "The event is a likely Tamil conversation about the topic of 'Vasanthi'. The confidence score of 0.402 suggests that it could be reliable but may require verification in other contexts.",
+  "risk_level": "medium"
+}

@@ -1,0 +1,13 @@
+{
+  "summary": "The audio scene includes a bus ride from the north to south, where two women were riding and another passenger was sitting in the front seat.",
+  "environment": "Urban environment with traffic",
+  "events": [
+    {
+      "type": "speech | sound_event",
+      "content": "एक बस दोन तासान पुरवी योँ गेली आणि पुरची बस याला अजून फक्त दोन सेक्टर",
+      "time": "0.00-10.04"
+    }
+  ],
+  "inference": "The speech event indicates that two women were in the bus, while another passenger was sitting in the front seat.",
+  "risk_level": "low"
+}

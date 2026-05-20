@@ -1,0 +1,14 @@
+{
+  "scene_id": "scene_0003",
+  "language": "tamil",
+  "duration": 10.0,
+  "tracks": [
+    {
+      "role": "speech",
+      "source": "clean\\tamil\\taf_09689_01760742599.wav",
+      "start": 2.84,
+      "gain_db": 0.0,
+      "transcript": "மதநல்லிணக்கம் பற்றி ஜோதிடத்தில் வலியுறுத்தப்பட்டு உள்ளதா"
+    }
+  ]
+}

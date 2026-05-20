@@ -1,0 +1,17 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+uploads/
+tmp/
+database/*.db
+.DS_Store
+clean_slop.py
+clean_slop_prints.py
+
+# Models & Large Files
+*.pt
+*.pth
+*.tmp
+*.wav
+*.mp3

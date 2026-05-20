@@ -1,0 +1,146 @@
+* {
+
+    box-sizing: border-box;
+}
+
+body {
+
+    margin: 0;
+
+    padding: 40px;
+
+    background: #000;
+
+    color: #fff;
+
+    font-family: Arial, sans-serif;
+}
+
+.container {
+
+    max-width: 900px;
+
+    margin: auto;
+}
+
+h1 {
+
+    font-size: 42px;
+
+    margin-bottom: 10px;
+}
+
+.subtitle {
+
+    color: #888;
+
+    margin-bottom: 40px;
+}
+
+input {
+
+    width: 100%;
+
+    padding: 14px;
+
+    margin-bottom: 20px;
+
+    background: #111;
+
+    border: 1px solid #333;
+
+    color: white;
+}
+
+button {
+
+    width: 100%;
+
+    padding: 14px;
+
+    background: white;
+
+    color: black;
+
+    border: none;
+
+    cursor: pointer;
+
+    font-size: 16px;
+
+    margin-bottom: 30px;
+}
+
+button:hover {
+
+    opacity: 0.9;
+}
+
+.card {
+
+    background: #0f0f0f;
+
+    border: 1px solid #222;
+
+    padding: 24px;
+
+    margin-bottom: 20px;
+}
+
+.card h2 {
+
+    margin-top: 0;
+
+    margin-bottom: 20px;
+
+    font-size: 20px;
+}
+
+.event {
+
+    padding: 14px;
+
+    border: 1px solid #222;
+
+    margin-bottom: 12px;
+
+    background: #050505;
+}
+
+.event-title {
+
+    font-weight: bold;
+
+    margin-bottom: 8px;
+}
+
+.event-meta {
+
+    color: #888;
+
+    font-size: 14px;
+}
+
+.loading {
+
+    color: #888;
+}
+
+.history-card {
+    padding: 16px;
+    margin-bottom: 16px;
+    background: #151515;
+}
+
+.history-card h3 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    font-size: 18px;
+    color: #fff;
+}
+
+.history-summary {
+    color: #bbb;
+    font-size: 14px;
+    line-height: 1.4;
+}

@@ -1,0 +1,14 @@
+{
+  "audio_file": "scene_0001.wav",
+  "detected_language": "mr",
+  "full_transcript": " किम्मत 2.3 तक्क्यां में घटून $1450 धली आही.",
+  "speech": [
+    {
+      "type": "speech",
+      "content": "किम्मत 2.3 तक्क्यां में घटून $1450 धली आही.",
+      "time": "0.00-8.88",
+      "confidence": 0.914
+    }
+  ],
+  "events": []
+}

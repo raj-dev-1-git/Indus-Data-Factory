@@ -1,0 +1,14 @@
+{
+  "audio_file": "scene_0004.wav",
+  "detected_language": "mr",
+  "full_transcript": " आपका संगण का करवी अशुध लेखन शोधून काडतो.",
+  "speech": [
+    {
+      "type": "speech",
+      "content": "आपका संगण का करवी अशुध लेखन शोधून काडतो.",
+      "time": "0.00-8.30",
+      "confidence": 0.996
+    }
+  ],
+  "events": []
+}

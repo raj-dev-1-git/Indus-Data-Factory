@@ -1,0 +1,14 @@
+{
+  "audio_file": "scene_0002.wav",
+  "detected_language": "ta",
+  "full_transcript": " சிவிஸ்நாட்டின் வாவரிங்கா வெற்றி",
+  "speech": [
+    {
+      "type": "speech",
+      "content": "சிவிஸ்நாட்டின் வாவரிங்கா வெற்றி",
+      "time": "0.00-6.10",
+      "confidence": 0.995
+    }
+  ],
+  "events": []
+}

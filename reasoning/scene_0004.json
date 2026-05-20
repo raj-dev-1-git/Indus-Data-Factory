@@ -1,0 +1,13 @@
+{
+  "summary": "The audio recording is of someone speaking Marathi in a scene with environmental sounds.",
+  "environment": "A typical village or residential area where people are engaged in reading and discussing religious texts.",
+  "events": [
+    {
+      "type": "speech",
+      "content": "आमी संगन का करवी अशुध लेखन शोधून काड़तो आणि मग ग्रंथा",
+      "time": "0.00-10.00"
+    }
+  ],
+  "inference": "The person speaking is reading a religious text, likely the 'Puranic' portion of the Bhagavad Gita or other ancient Sanskrit texts.",
+  "risk_level": "low"
+}

@@ -1,0 +1,21 @@
+{
+  "scene_id": "scene_0000",
+  "language": "marathi",
+  "duration": 10.0,
+  "tracks": [
+    {
+      "role": "speech",
+      "source": "clean\\marathi\\mrt_01523_00739580343.wav",
+      "start": 3.48,
+      "gain_db": 0.0,
+      "transcript": "एक बस दोन तासांपूर्वी येऊन गेली आणि पुढची बस यायला अजून फक्त दोन सेकंदं आहेत"
+    },
+    {
+      "role": "event",
+      "event_type": "dog_bark",
+      "source": "dataset\\events\\dog_bark\\2aMLxhl5UXw.wav",
+      "start": 5.89,
+      "gain_db": -28.23
+    }
+  ]
+}

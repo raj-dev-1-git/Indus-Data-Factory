@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Audio Intelligence</title>
+
+    <link rel="stylesheet" href="/static/style.css">
+
+</head>
+<body>
+
+    <div class="container">
+
+        <h1>Audio Intelligence</h1>
+
+        <p class="subtitle">
+            Multilingual Audio Reasoning System
+        </p>
+
+        <input
+            type="file"
+            id="audioFile"
+            accept=".wav"
+        >
+
+        <button id="uploadBtn">
+            Upload Audio
+        </button>
+
+        <div id="status"></div>
+        
+        <hr style="border-color: #333; margin: 40px 0;">
+        <h2>History Dashboard</h2>
+        <button id="historyBtn">Load History</button>
+        <div id="historyContainer"></div>
+
+    </div>
+
+    <script src="/static/app.js"></script>
+
+</body>
+</html>
