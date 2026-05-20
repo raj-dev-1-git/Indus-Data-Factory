@@ -4,7 +4,7 @@ __pycache__/
 .env
 uploads/
 tmp/
-database/*.db
+database/
 .DS_Store
 clean_slop.py
 clean_slop_prints.py
@@ -15,3 +15,15 @@ clean_slop_prints.py
 *.tmp
 *.wav
 *.mp3
+*.m4a
+*.m4a.part
+*.webm
+*.tsv
+
+# Datasets and Outputs
+dataset/
+clean/
+perception/
+reasoning/
+scenes/
+archive/
