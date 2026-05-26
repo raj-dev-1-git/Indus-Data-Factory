@@ -4,19 +4,26 @@ from pathlib import Path
 
 BASE = Path(__file__).resolve().parent.parent.parent
 
-PROMPT_FILE = BASE / "archive" / "prompts" / "prompt_v1.txt"
-
-
 import os
 
 OLLAMA_EXE = os.environ.get("OLLAMA_EXE", "ollama")
-# MODEL = "qwen2.5:7b-instruct"
 MODEL = "qwen2.5:1.5b"
 
+SYSTEM_PROMPT = """You are an advanced audio intelligence reasoning system.
+Given a JSON payload describing detected speech and sound events from an audio clip, you must provide:
+1. A concise summary of what is happening.
+2. The most likely environment or setting.
+3. Logical inferences about the situation.
+4. A risk level assessment (Low, Medium, High).
 
-with open(PROMPT_FILE, "r", encoding="utf-8") as f:
-
-    SYSTEM_PROMPT = f.read()
+Respond ONLY with a valid JSON object matching this schema:
+{
+  "summary": "string",
+  "environment": "string",
+  "inference": "string",
+  "risk_level": "string"
+}
+"""
 
 
 def run_reasoning(perception_data):
@@ -43,6 +50,7 @@ Perception JSON:
         capture_output=True,
         text=True,
         encoding="utf-8",
+        timeout=120,
     )
 
     # OUTPUT

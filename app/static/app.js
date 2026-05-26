@@ -1,3 +1,10 @@
+function escapeHtml(text) {
+    if (text === null || text === undefined) return "";
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
 const uploadBtn = document.getElementById(
     "uploadBtn"
 );
@@ -44,18 +51,26 @@ uploadBtn.addEventListener(
         // API
         // =====================
 
-        const response = await fetch(
-
-            "/upload",
-
-            {
-                method: "POST",
-
-                body: formData
-            }
-        );
-
-        const data = await response.json();
+        let response;
+        let data;
+        try {
+            response = await fetch(
+                "/upload",
+                {
+                    method: "POST",
+                    body: formData
+                }
+            );
+            data = await response.json();
+        } catch (e) {
+            statusDiv.innerHTML = `
+                <div class="card">
+                    <h2>Error</h2>
+                    <p>Failed to connect to the server: ${escapeHtml(e.toString())}</p>
+                </div>
+            `;
+            return;
+        }
 
         // =====================
         // ERROR
@@ -70,7 +85,7 @@ uploadBtn.addEventListener(
                     <h2>Error</h2>
 
                     <p>
-                        ${data.error}
+                        ${escapeHtml(data.error || "Unknown error")}
                     </p>
 
                 </div>
@@ -110,16 +125,16 @@ uploadBtn.addEventListener(
                     <div class="event">
 
                         <div class="event-title">
-                            ${event.content}
+                            ${escapeHtml(event.content)}
                         </div>
 
                         <div class="event-meta">
-                            ${event.time}
+                            ${escapeHtml(event.time)}
                         </div>
 
                         <div class="event-meta">
                             confidence:
-                            ${event.confidence}
+                            ${escapeHtml(event.confidence.toString())}
                         </div>
 
                     </div>
@@ -176,7 +191,7 @@ uploadBtn.addEventListener(
                 <h2>Transcript</h2>
 
                 <p>
-                    ${perception.full_transcript}
+                    ${escapeHtml(perception.full_transcript)}
                 </p>
 
             </div>
@@ -194,7 +209,7 @@ uploadBtn.addEventListener(
                 <h2>Environment</h2>
 
                 <p>
-                    ${environment}
+                    ${escapeHtml(environment)}
                 </p>
 
             </div>
@@ -204,7 +219,7 @@ uploadBtn.addEventListener(
                 <h2>Summary</h2>
 
                 <p>
-                    ${summary}
+                    ${escapeHtml(summary)}
                 </p>
 
             </div>
@@ -214,7 +229,7 @@ uploadBtn.addEventListener(
                 <h2>Inference</h2>
 
                 <p>
-                    ${inference}
+                    ${escapeHtml(inference)}
                 </p>
 
             </div>
@@ -224,7 +239,7 @@ uploadBtn.addEventListener(
                 <h2>Risk Level</h2>
 
                 <p>
-                    ${risk}
+                    ${escapeHtml(risk)}
                 </p>
 
             </div>
@@ -254,14 +269,14 @@ historyBtn.addEventListener("click", async () => {
         for (const record of data.history) {
             html += `
                 <div class="card history-card">
-                    <h3>${record.filename}</h3>
-                    <p><strong>Risk:</strong> ${record.risk_level}</p>
-                    <p class="history-summary">${record.summary}</p>
+                    <h3>${escapeHtml(record.filename)}</h3>
+                    <p><strong>Risk:</strong> ${escapeHtml(record.risk_level)}</p>
+                    <p class="history-summary">${escapeHtml(record.summary)}</p>
                 </div>
             `;
         }
         historyContainer.innerHTML = html;
     } catch (e) {
-        historyContainer.innerHTML = `<p>Error loading history: ${e}</p>`;
+        historyContainer.innerHTML = `<p>Error loading history: ${escapeHtml(e.toString())}</p>`;
     }
 });

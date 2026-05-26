@@ -10,6 +10,7 @@ services:
       - ./uploads:/app/uploads
     environment:
       # Use host network Ollama instance by default for local dev
-      - OLLAMA_EXE=http://host.docker.internal:11434/api/generate
+      - OLLAMA_EXE=ollama
+      - OLLAMA_HOST=http://host.docker.internal:11434
     # Uncomment the following to use host networking if `host.docker.internal` is not available
     # network_mode: "host"

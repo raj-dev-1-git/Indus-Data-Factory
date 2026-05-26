@@ -6,12 +6,14 @@ from pathlib import Path
 BASE = Path(__file__).resolve().parent
 
 
+import sys
+
 def run_step(script_name):
 
     print(f"Running: {script_name}")
 
     result = subprocess.run(
-        [".venv\\Scripts\\python.exe", str(BASE / "pipeline" / script_name)], text=True
+        [sys.executable, str(BASE / "pipeline" / script_name)], text=True
     )
 
     # CHECK FAILURE

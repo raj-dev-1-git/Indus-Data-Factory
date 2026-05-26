@@ -19,12 +19,6 @@ def word_error_rate(reference, hypothesis):
     # Remove digits
     reference = re.sub(r'\d+(\.\d+)?', '', reference)
     hypothesis = re.sub(r'\d+(\.\d+)?', '', hypothesis)
-    
-    # Remove common Marathi number words to normalize digits-vs-words discrepancy
-    num_words = ["एक", "दोन", "तीन", "चार", "पाच", "सहा", "सात", "आठ", "नऊ", "दहा", "हजार", "शे", "शंभर", "पन्नास", "पूर्णांक", "टक्के", "टक्क्यांनी"]
-    for word in num_words:
-        reference = re.sub(fr'(?<!\S){word}(?!\S)', '', reference)
-        hypothesis = re.sub(fr'(?<!\S){word}(?!\S)', '', hypothesis)
 
     ref_words = reference.lower().split()
     hyp_words = hypothesis.lower().split()
@@ -116,6 +110,8 @@ perception_files = sorted(PERCEPTION.glob("*.json"))
 
 all_wer = []
 
+all_cer = []
+
 all_f1 = []
 
 for perception_file in perception_files:
@@ -166,6 +162,8 @@ for perception_file in perception_files:
     
     all_f1.append(f1)
 
+    all_cer.append(cer)
+
     print(f"{perception_file.name}")
 
     print(f"WER: {wer:.3f} | CER: {cer:.3f} | F1: {f1:.3f}")
@@ -182,12 +180,13 @@ if all_wer:
 
     avg_wer = sum(all_wer) / len(all_wer)
     
-    # Optional: also compute average CER if you're saving it to a list
-    # But for now we just show it per file to see the difference.
+    avg_cer = sum(all_cer) / len(all_cer) if all_cer else 0.0
     
     avg_f1 = sum(all_f1) / len(all_f1) if all_f1 else 0.0
 
     print(f"\nAverage WER: {avg_wer:.3f}")
+    
+    print(f"Average CER: {avg_cer:.3f}")
     
     print(f"Average Event F1: {avg_f1:.3f}")
 

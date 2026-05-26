@@ -6,6 +6,7 @@ import numpy as np
 import torch
 import whisper
 import laion_clap
+import noisereduce as nr
 
 BASE = Path(__file__).resolve().parent.parent
 
@@ -71,9 +72,7 @@ for audio_path in scene_files:
             meta = json.load(f)
         lang_code = LANG_MAP.get(meta.get("language", ""), None)
 
-    # ASR with forced language (the key fix)
     try:
-        import noisereduce as nr
         # Load and denoise audio specifically for Whisper at 16kHz
         whisper_audio, _ = librosa.load(audio_path, sr=16000, mono=True)
         denoised_audio = nr.reduce_noise(y=whisper_audio, sr=16000)
@@ -115,6 +114,12 @@ for audio_path in scene_files:
     stride_size = int(STRIDE_SECONDS * sr)
     total_length = len(audio)
 
+    # Compute text embeddings once
+    text_embed = clap_model.get_text_embedding(EVENT_LABELS, use_tensor=True)
+    
+    # Store max confidence per event type
+    event_max_scores = {label: 0.0 for label in EVENT_LABELS}
+
     for start_idx in range(0, total_length - window_size, stride_size):
         end_idx = start_idx + window_size
         chunk = audio[start_idx:end_idx]
@@ -127,23 +132,25 @@ for audio_path in scene_files:
         audio_embed = clap_model.get_audio_embedding_from_data(
             x=[chunk_tensor], use_tensor=True
         )
-        text_embed = clap_model.get_text_embedding(EVENT_LABELS, use_tensor=True)
         similarity = torch.softmax(audio_embed @ text_embed.T, dim=-1)
         similarity = similarity[0].detach().cpu().numpy()
 
         for label, score in zip(EVENT_LABELS, similarity):
-            if score > EVENT_THRESHOLD:
-                start_time = start_idx / sr
-                end_time = end_idx / sr
-                sound_events.append(
-                    {
-                        "type": "sound_event",
-                        "content": label,
-                        "canonical_event": LABEL_TO_EVENT.get(label, "unknown"),
-                        "time": f"{start_time:.2f}-{end_time:.2f}",
-                        "confidence": round(float(score), 3),
-                    }
-                )
+            if score > event_max_scores[label]:
+                event_max_scores[label] = float(score)
+
+    # Add events that exceed threshold
+    for label, max_score in event_max_scores.items():
+        if max_score > EVENT_THRESHOLD:
+            sound_events.append(
+                {
+                    "type": "sound_event",
+                    "content": label,
+                    "canonical_event": LABEL_TO_EVENT.get(label, "unknown"),
+                    "time": f"0.00-10.00", # simplified to whole file since deduplicated
+                    "confidence": round(max_score, 3),
+                }
+            )
 
     perception = {
         "audio_file": audio_path.name,

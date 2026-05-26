@@ -84,8 +84,6 @@ for i in range(NUM_SCENES):
 
     # MULTI-EVENT SCENES
 
-    # MULTI-EVENT SCENES
-
     # Lower complexity to realistic levels
     num_events = random.randint(1, 3)
 

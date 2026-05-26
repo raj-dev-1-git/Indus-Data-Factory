@@ -13,7 +13,9 @@ PROMPT_FILE = BASE / "archive" / "prompts" / "prompt_v1.txt"
 REASONING.mkdir(parents=True, exist_ok=True)
 
 
-OLLAMA_EXE = r"C:\Users\salun\AppData\Local\Programs" r"\Ollama\ollama.exe"
+import os
+
+OLLAMA_EXE = os.environ.get("OLLAMA_EXE", "ollama")
 
 MODEL = "qwen2.5:1.5b"
 

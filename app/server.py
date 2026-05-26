@@ -17,15 +17,20 @@ from app.models import AudioResult
 
 from app.services.perception_service import run_perception
 
-from app.services.reasoning_service import run_reasoning
+from app.database import engine
+from app.models import AudioResult
+
+AudioResult.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
 
 
-app.mount("/static", StaticFiles(directory="app/static"), name="static")
+APP_DIR = Path(__file__).resolve().parent
 
-templates = Jinja2Templates(directory="app/templates")
+app.mount("/static", StaticFiles(directory=str(APP_DIR / "static")), name="static")
+
+templates = Jinja2Templates(directory=str(APP_DIR / "templates"))
 
 
 BASE = Path(__file__).resolve().parent.parent
@@ -76,7 +81,7 @@ def get_history():
 
 
 @app.post("/upload")
-async def upload_audio(file: UploadFile = File(...)):
+def upload_audio(file: UploadFile = File(...)):
 
     # VALIDATE
 
@@ -88,11 +93,12 @@ async def upload_audio(file: UploadFile = File(...)):
 
         # SAVE AUDIO
 
-    save_path = UPLOADS / file.filename
+    safe_name = Path(file.filename).name
+    save_path = UPLOADS / safe_name
 
     with open(save_path, "wb") as f:
 
-        content = await file.read()
+        content = file.file.read()
 
         f.write(content)
 
@@ -107,19 +113,20 @@ async def upload_audio(file: UploadFile = File(...)):
     # SQLITE
     db: Session = SessionLocal()
 
-    audio_result = AudioResult(
-        filename=file.filename,
-        transcript=perception["full_transcript"],
-        reasoning=json.dumps(reasoning, ensure_ascii=False)
-    )
+    try:
+        audio_result = AudioResult(
+            filename=safe_name,
+            transcript=perception["full_transcript"],
+            reasoning=json.dumps(reasoning, ensure_ascii=False)
+        )
 
-    db.add(audio_result)
+        db.add(audio_result)
 
-    db.commit()
+        db.commit()
 
-    db.refresh(audio_result)
-
-    db.close()
+        db.refresh(audio_result)
+    finally:
+        db.close()
 
     # RESPONSE
 
