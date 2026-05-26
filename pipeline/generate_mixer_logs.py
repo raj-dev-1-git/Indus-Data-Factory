@@ -106,7 +106,7 @@ for i in range(NUM_SCENES):
                 "event_type": event_type,
                 "source": str(event_file.relative_to(BASE)),
                 "start": round(random.uniform(0.0, 8.0), 2),
-                "gain_db": round(random.uniform(-35, -25), 2),
+                "gain_db": round(random.uniform(-15, -5), 2),
             }
         )
 

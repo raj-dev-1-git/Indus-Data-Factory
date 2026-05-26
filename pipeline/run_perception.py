@@ -42,7 +42,7 @@ LANG_MAP = {
 
 WINDOW_SECONDS = 1
 STRIDE_SECONDS = 0.5
-EVENT_THRESHOLD = 0.22
+EVENT_THRESHOLD = 0.18
 
 INITIAL_PROMPTS = {
     "mr": "कृपया सर्व आकडे शब्दांत लिहा.",
