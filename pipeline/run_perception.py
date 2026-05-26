@@ -15,14 +15,21 @@ OUT = BASE / "perception"
 OUT.mkdir(parents=True, exist_ok=True)
 
 EVENT_LABELS = [
-    "car honk",
-    "civil defense siren",
-    "dog bark",
-    "explosion",
-    "fighter jet engine",
-    "gunfire",
-    "subway train",
+    "airplane flying overhead",
+    "dog barking",
+    "emergency siren",
+    "road traffic noise",
+    "crowd of people talking",
 ]
+
+# map CLAP descriptive labels to canonical dataset event_folder names
+LABEL_TO_EVENT = {
+    "airplane flying overhead": "airplane",
+    "dog barking":              "dog_bark",
+    "emergency siren":          "siren",
+    "road traffic noise":       "traffic",
+    "crowd of people talking":  "crowd",
+}
 
 # map folder names to whisper language codes
 LANG_MAP = {
@@ -132,6 +139,7 @@ for audio_path in scene_files:
                     {
                         "type": "sound_event",
                         "content": label,
+                        "canonical_event": LABEL_TO_EVENT.get(label, "unknown"),
                         "time": f"{start_time:.2f}-{end_time:.2f}",
                         "confidence": round(float(score), 3),
                     }

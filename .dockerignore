@@ -1,0 +1,8 @@
+__pycache__/
+.venv/
+uploads/
+database/
+scenes/
+perception/
+reasoning/
+.git/

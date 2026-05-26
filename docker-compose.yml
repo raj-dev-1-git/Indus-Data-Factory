@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./database:/app/database
+      - ./uploads:/app/uploads
+    environment:
+      # Use host network Ollama instance by default for local dev
+      - OLLAMA_EXE=http://host.docker.internal:11434/api/generate
+    # Uncomment the following to use host networking if `host.docker.internal` is not available
+    # network_mode: "host"

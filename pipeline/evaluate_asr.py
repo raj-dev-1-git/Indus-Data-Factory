@@ -150,9 +150,10 @@ for perception_file in perception_files:
 
     wer = word_error_rate(ground_truth, predicted)
     
-    pred_events = [e.get("content", "").lower() for e in perception_data.get("events", []) if "sound_event" in e.get("type", "")]
-    # Our new run_perception uses labels like "car honk", which maps perfectly to "car_honk"
-    pred_events = [e.replace(" ", "_") for e in pred_events]
+    pred_events = [e.get("canonical_event", "") for e in perception_data.get("events", []) if "sound_event" in e.get("type", "")]
+    # Fallback to the old method if canonical_event is missing (for older json results)
+    if not any(pred_events):
+        pred_events = [e.get("content", "").lower().replace(" ", "_") for e in perception_data.get("events", []) if "sound_event" in e.get("type", "")]
     
     true_events = [track.get("event_type", "").lower() for track in metadata.get("tracks", []) if track.get("role") == "event"]
     

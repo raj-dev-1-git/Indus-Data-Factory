@@ -53,6 +53,13 @@ To generate the evaluation audio scenes, the pipeline runs two key scripts:
    pip install -r requirements.txt
    ```
 
+3. **Using Docker (Optional)**
+   You can also run the web service via Docker:
+   ```bash
+   docker-compose up --build
+   ```
+   *Note: This assumes Ollama is running on your host machine.*
+
 ## How to Run
 
 ### 1. Run the Offline Pipeline
@@ -71,6 +78,7 @@ fastapi dev app/server.py
 * You can interact with the `/upload` endpoint to process `.wav` files dynamically.
 
 ## Recent Pipeline Improvements
+* **F1 Label Mapping**: Re-aligned CLAP zero-shot text labels to map cleanly to the 5 base dataset event types (airplane, dog_bark, siren, traffic, crowd) via a canonical metadata field to accurately compute F1 scores.
 * **CER Evaluation**: Integrated Character Error Rate calculation to accurately measure performance on highly agglutinative languages.
 * **Whisper Normalization**: Integrated `whisper.normalizers` and native language `initial_prompt` conditioning to correctly parse numerical values into target language alphabets.
-* **CLAP Temporal Tuning**: Adjusted sliding window detection logic (1.0s window, 0.5s stride) to aggressively filter false positives and correctly detect transient audio events.
+* **CLAP Temporal Tuning**: Adjusted sliding window detection logic (1.0s window, 0.5s stride) to aggressively filter false positives and correctly detect transient audio events. Both offline and online pipelines are now perfectly synced.

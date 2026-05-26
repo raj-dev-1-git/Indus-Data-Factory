@@ -12,12 +12,21 @@ clap_model = laion_clap.CLAP_Module(enable_fusion=False)
 clap_model.load_ckpt()
 
 EVENT_LABELS = [
+    "airplane flying overhead",
     "dog barking",
-    "traffic noise",
-    "airplane sound",
-    "siren sound",
-    "crowd talking",
+    "emergency siren",
+    "road traffic noise",
+    "crowd of people talking",
 ]
+
+# map CLAP descriptive labels to canonical dataset event_folder names
+LABEL_TO_EVENT = {
+    "airplane flying overhead": "airplane",
+    "dog barking":              "dog_bark",
+    "emergency siren":          "siren",
+    "road traffic noise":       "traffic",
+    "crowd of people talking":  "crowd",
+}
 
 LANG_MAP = {
     "marathi": "mr",
@@ -26,9 +35,16 @@ LANG_MAP = {
     "telugu": "te",
 }
 
-WINDOW_SECONDS = 2
-STRIDE_SECONDS = 1
+WINDOW_SECONDS = 1
+STRIDE_SECONDS = 0.5
 EVENT_THRESHOLD = 0.22
+
+INITIAL_PROMPTS = {
+    "mr": "कृपया सर्व आकडे शब्दांत लिहा.",
+    "ta": "தயவுசெய்து அனைத்து எண்களையும் வார்த்தைகளில் எழுதவும்.",
+    "bn": "অনুগ্রহ করে সব সংখ্যা শব্দে লিখুন।",
+    "te": "దయచేసి అన్ని సంఖ్యలను పదాలలో రాయండి."
+}
 
 
 def run_perception(audio_path, language_hint=None):
@@ -47,8 +63,9 @@ def run_perception(audio_path, language_hint=None):
         denoised_audio = nr.reduce_noise(y=whisper_audio, sr=16000)
 
         if lang_code:
+            prompt = INITIAL_PROMPTS.get(lang_code, "")
             result = whisper_model.transcribe(
-                denoised_audio, language=lang_code, task="transcribe", condition_on_previous_text=False
+                denoised_audio, language=lang_code, task="transcribe", condition_on_previous_text=False, initial_prompt=prompt
             )
         else:
             result = whisper_model.transcribe(denoised_audio, condition_on_previous_text=False)
@@ -107,6 +124,7 @@ def run_perception(audio_path, language_hint=None):
                     {
                         "type": "sound_event",
                         "content": label,
+                        "canonical_event": LABEL_TO_EVENT.get(label, "unknown"),
                         "time": f"{start_time:.2f}-{end_time:.2f}",
                         "confidence": round(float(score), 3),
                     }
