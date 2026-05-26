@@ -7,7 +7,7 @@ BASE = Path(__file__).resolve().parent.parent.parent
 import os
 
 OLLAMA_EXE = os.environ.get("OLLAMA_EXE", "ollama")
-MODEL = "qwen2.5:1.5b"
+MODEL = "qwen2.5:3b"
 
 SYSTEM_PROMPT = """You are an advanced audio intelligence reasoning system.
 Given a JSON payload describing detected speech and sound events from an audio clip, you must provide:

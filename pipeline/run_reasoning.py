@@ -12,7 +12,7 @@ import os
 
 OLLAMA_EXE = os.environ.get("OLLAMA_EXE", "ollama")
 
-MODEL = "qwen2.5:1.5b"
+MODEL = "qwen2.5:3b"
 
 REASONING.mkdir(parents=True, exist_ok=True)
 

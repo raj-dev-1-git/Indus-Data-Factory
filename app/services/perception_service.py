@@ -5,12 +5,19 @@ import whisper
 import laion_clap
 import noisereduce as nr
 
-print("Loading Whisper large-v3...")
-whisper_model = whisper.load_model("large-v3")
+whisper_model = None
+clap_model = None
 
-print("Loading CLAP...")
-clap_model = laion_clap.CLAP_Module(enable_fusion=False)
-clap_model.load_ckpt()
+def get_models():
+    global whisper_model, clap_model
+    if whisper_model is None:
+        print("Loading Whisper large-v3...")
+        whisper_model = whisper.load_model("large-v3")
+    if clap_model is None:
+        print("Loading CLAP...")
+        clap_model = laion_clap.CLAP_Module(enable_fusion=False)
+        clap_model.load_ckpt()
+    return whisper_model, clap_model
 
 EVENT_LABELS = [
     "airplane flying overhead",
@@ -52,6 +59,8 @@ def run_perception(audio_path, language_hint=None):
     """
     Run ASR + event detection on an audio file.
     """
+    whisper_model, clap_model = get_models()
+    
     lang_code = None
     if language_hint:
         lang_code = LANG_MAP.get(language_hint, language_hint)
