@@ -16,6 +16,7 @@ from app.database import SessionLocal
 from app.models import AudioResult
 
 from app.services.perception_service import run_perception
+from app.services.reasoning_service import run_reasoning
 
 from app.database import engine
 from app.models import AudioResult
