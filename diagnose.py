@@ -57,7 +57,7 @@ header("1. MIXER → DATASET FOLDER ALIGNMENT")
 EVENTS_DIR = BASE / "dataset" / "events"
 
 # What the mixer tries to use (from generate_mixer_logs.py)
-MIXER_EVENT_TYPES = ["car_honk", "civil_defense_siren", "dog_bark", "explosion", "fighter_jet_engine", "gunfire", "subway_train"]
+MIXER_EVENT_TYPES = ["civil_defense_siren", "dog_bark", "gunfire", "subway_train"]
 
 # What folders actually exist
 existing_folders = [d.name for d in EVENTS_DIR.iterdir() if d.is_dir()] if EVENTS_DIR.exists() else []
@@ -84,48 +84,48 @@ if unused_folders:
 
 
 # ══════════════════════════════════════════════════════════
-# CHECK 2: CLAP labels vs dataset folder names
+# CHECK 2: PANNs labels vs dataset folder names
 # ══════════════════════════════════════════════════════════
-header("2. CLAP DETECTOR LABELS → DATASET FOLDER ALIGNMENT")
+header("2. PANNs DETECTOR LABELS → DATASET FOLDER ALIGNMENT")
 
-# What CLAP searches for (from run_perception.py)
-CLAP_LABELS = ["car honk", "civil defense siren", "dog bark", "explosion", "fighter jet engine", "gunfire", "subway train"]
-CLAP_NORMALIZED = [l.replace(" ", "_") for l in CLAP_LABELS]
+# What PANNs searches for (from run_perception.py)
+PANNS_LABELS = ["civil defense siren", "dog bark", "gunfire", "subway train"]
+PANNS_NORMALIZED = [l.replace(" ", "_") for l in PANNS_LABELS]
 
-print(f"\n  CLAP EVENT_LABELS:       {CLAP_LABELS}")
-print(f"  Normalized (underscore): {CLAP_NORMALIZED}\n")
+print(f"\n  PANNs EVENT_LABELS:      {PANNS_LABELS}")
+print(f"  Normalized (underscore): {PANNS_NORMALIZED}\n")
 
-for label, normalized in zip(CLAP_LABELS, CLAP_NORMALIZED):
+for label, normalized in zip(PANNS_LABELS, PANNS_NORMALIZED):
     if normalized in existing_folders:
-        ok(f"CLAP label '{label}' → folder '{normalized}/' exists")
+        ok(f"PANNs label '{label}' → folder '{normalized}/' exists")
     else:
-        warn(f"CLAP label '{label}' → no matching folder (not necessarily a bug, CLAP detects from audio)")
+        warn(f"PANNs label '{label}' → no matching folder (not necessarily a bug, PANNs detects from audio)")
 
 
 # ══════════════════════════════════════════════════════════
-# CHECK 3: Mixer labels vs CLAP labels (THE KEY CHECK)
+# CHECK 3: Mixer labels vs PANNs labels (THE KEY CHECK)
 # ══════════════════════════════════════════════════════════
-header("3. MIXER LABELS ↔ CLAP LABELS (F1 alignment)")
+header("3. MIXER LABELS ↔ PANNs LABELS (F1 alignment)")
 
 print(f"\n  Mixer writes event_type as:  {MIXER_EVENT_TYPES}")
-print(f"  CLAP detects and outputs as: {CLAP_NORMALIZED}")
+print(f"  PANNs detects and outputs as: {PANNS_NORMALIZED}")
 print(f"  Evaluator compares these two sets for Precision/Recall/F1\n")
 
 mixer_set = set(MIXER_EVENT_TYPES)
-clap_set = set(CLAP_NORMALIZED)
+panns_set = set(PANNS_NORMALIZED)
 
-matching = mixer_set & clap_set
-only_mixer = mixer_set - clap_set
-only_clap = clap_set - mixer_set
+matching = mixer_set & panns_set
+only_mixer = mixer_set - panns_set
+only_panns = panns_set - mixer_set
 
 for m in sorted(matching):
-    ok(f"'{m}' exists in BOTH mixer and CLAP → F1 can match ✓")
+    ok(f"'{m}' exists in BOTH mixer and PANNs → F1 can match ✓")
 
 for m in sorted(only_mixer):
-    fail(f"'{m}' in mixer ground truth but NOT in CLAP labels → F1 will always miss this (false negative)")
+    fail(f"'{m}' in mixer ground truth but NOT in PANNs labels → F1 will always miss this (false negative)")
 
-for c in sorted(only_clap):
-    warn(f"'{c}' in CLAP labels but NOT in mixer → if detected, counts as false positive in F1")
+for c in sorted(only_panns):
+    warn(f"'{c}' in PANNs labels but NOT in mixer → if detected, counts as false positive in F1")
 
 
 # ══════════════════════════════════════════════════════════
@@ -149,15 +149,15 @@ if META_DIR.exists():
             warn(f"{sf.name}: 0 events mixed in (speech-only scene)")
 
     if total_events == 0:
-        fail(f"ALL {len(scene_files)} scenes have 0 events — nothing for CLAP to detect!")
+        fail(f"ALL {len(scene_files)} scenes have 0 events — nothing for PANNs to detect!")
 else:
     fail("scenes/metadata/ directory not found — run generate_mixer_logs.py first")
 
 
 # ══════════════════════════════════════════════════════════
-# CHECK 5: Perception outputs — did CLAP detect anything?
+# CHECK 5: Perception outputs — did PANNs detect anything?
 # ══════════════════════════════════════════════════════════
-header("5. PERCEPTION OUTPUTS — CLAP detections")
+header("5. PERCEPTION OUTPUTS — PANNs detections")
 
 PERC_DIR = BASE / "perception"
 if PERC_DIR.exists():
@@ -172,10 +172,10 @@ if PERC_DIR.exists():
             descs = [f"{e['content']} ({e['confidence']:.3f})" for e in events]
             ok(f"{pf.name}: {len(events)} detection(s) → {', '.join(descs)}")
         else:
-            warn(f"{pf.name}: 0 events detected by CLAP")
+            warn(f"{pf.name}: 0 events detected by PANNs")
 
     if total_detections == 0:
-        fail(f"CLAP detected 0 events across ALL {len(perc_files)} scenes")
+        fail(f"PANNs detected 0 events across ALL {len(perc_files)} scenes")
 else:
     fail("perception/ directory not found — run the pipeline first")
 

@@ -7,7 +7,7 @@ This repository contains a dual-mode Audio Intelligence system designed for mult
 
 ## Architecture
 
-* **Perception Engine**: Utilizes `Faster-Whisper` (large-v3-turbo, int8 quantized for CPU) for multilingual Speech-to-Text, enhanced with native `initial_prompt` tuning for robust digit-to-word normalization. Audio event detection is powered by `LAION CLAP` operating in a zero-shot capacity with a multi-prompt ensemble (3 prompts per event) and multi-scale sliding windows (3s/1s stride + 5s/1.5s stride + full-clip) for temporal localization.
+* **Perception Engine**: Utilizes `Faster-Whisper` (large-v3-turbo, int8 quantized for CPU) for multilingual Speech-to-Text, enhanced with native `initial_prompt` tuning for robust digit-to-word normalization. Audio event detection is powered by `PANNs CNN14` (Pre-trained Audio Neural Networks) operating as a supervised AudioSet classifier with multi-scale sliding windows (1s/0.5s stride + 2s/1.0s stride + 4s/2.0s stride + full-clip) for temporal localization.
 * **Reasoning Engine**: Processes the transcriptions and events via a local LLM (Qwen 2.5 1.5B through Ollama) to provide contextual insights.
 * **Database**: SQLite with SQLAlchemy ORM to track inference results over time.
 
@@ -21,9 +21,9 @@ This repository contains a dual-mode Audio Intelligence system designed for mult
 
 ## Event Detection Labels
 
-The CLAP zero-shot detector targets 7 threat-relevant and contextual event categories:
+The PANNs CNN14 detector targets 4 threat-relevant and contextual event categories (mapped to AudioSet classes):
 
-`car_honk` · `civil_defense_siren` · `dog_bark` · `explosion` · `fighter_jet_engine` · `gunfire` · `subway_train`
+`civil_defense_siren` · `dog_bark` · `gunfire` · `subway_train`
 
 ## Dataset & Scene Generation
 
@@ -50,10 +50,10 @@ To generate the evaluation audio scenes, the pipeline runs two key scripts:
 ├── pipeline/                   # Offline Batch Processing Scripts
 │   ├── generate_mixer_logs.py  # Synthetic scene metadata generator
 │   ├── render_scenes.py        # Audio scene renderer/mixer
-│   ├── run_perception.py       # Batch ASR + CLAP event detection
+│   ├── run_perception.py       # Batch ASR + PANNs event detection
 │   ├── evaluate_asr.py         # Computes WER, CER, and Event F1
 │   ├── run_reasoning.py        # Batch LLM context analysis
-│   └── diagnose_clap.py        # CLAP threshold tuning diagnostic
+│   └── diagnose_panns.py       # PANNs threshold tuning diagnostic
 ├── diagnose.py                 # Pipeline alignment diagnostic
 ├── main.py                     # Entry point for the offline pipeline
 └── requirements.txt            # Python dependencies
@@ -61,14 +61,7 @@ To generate the evaluation audio scenes, the pipeline runs two key scripts:
 
 ## Model Downloads
 
-This project requires two model checkpoint files that are **not** included in the repository (`.gitignore`d due to size):
-
-| File | Size | Source |
-|------|------|--------|
-| `music_speech_audioset_epoch_15_esc_89.98.pt` | ~2.3 GB | [LAION CLAP](https://github.com/LAION-AI/CLAP) |
-| `630k-audioset-best.pt` | ~1.8 GB | [LAION CLAP](https://github.com/LAION-AI/CLAP) |
-
-Place these files in the project root directory before running.
+The PANNs CNN14 checkpoint (~320 MB) is automatically downloaded on first run via `panns_inference`. No manual model placement is required.
 
 ## Setup Instructions
 
@@ -115,7 +108,7 @@ fastapi dev app/server.py
 ## Key Design Decisions
 
 * **CPU-Only Inference**: All models run on CPU with int8 quantization. Whisper uses `large-v3-turbo` (optimized for speed) with beam search and temperature fallbacks.
-* **Multi-Prompt CLAP Ensemble**: Each event type has 3 prompt variations. The max cosine similarity across prompts is used per event, improving recall without training.
-* **Multi-Scale Windowing**: Short windows (3s) catch impulsive events (gunfire), long windows (5s) catch sustained events (sirens), and full-clip gives CLAP its native 10s context.
+* **PANNs CNN14 Classification**: Each event type maps to one or more AudioSet classes (527 total). The max sigmoid probability across mapped classes is used per event, providing calibrated confidence scores without prompt engineering.
+* **Multi-Scale Windowing**: Short windows (1s) catch impulsive events (gunfire), medium windows (2s/4s) catch sustained events (sirens), and full-clip gives PANNs broader context.
 * **Unified Codepath**: Both the offline pipeline and web API use the exact same perception and reasoning engines — same models, same parameters, same results.
 * **CER over WER**: Character Error Rate is the primary metric for agglutinative Indic languages where word boundary differences inflate WER artificially.

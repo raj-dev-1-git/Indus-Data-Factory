@@ -4,7 +4,7 @@ from pathlib import Path
 import librosa
 import numpy as np
 from faster_whisper import WhisperModel
-import laion_clap
+from panns_inference import AudioTagging, labels as AUDIOSET_LABELS
 
 BASE = Path(__file__).resolve().parent.parent
 
@@ -19,64 +19,61 @@ for old in OUT.glob("*.json"):
     old.unlink()
 
 # =========================================================
-# EVENT PROMPTS
+# AUDIOSET CLASS MAPPING
 # =========================================================
 
-EVENT_PROMPTS = {
-    "car_honk": [
-        "a car horn honking on the road",
-        "vehicle horn, car horn, honking",
-        "loud beeping car horn",
-    ],
-    "civil_defense_siren": [
-        "a civil defense siren or air raid siren wailing",
-        "emergency warning siren, loud alarm siren",
-        "civil defense siren",
-    ],
-    "dog_bark": [
-        "a dog barking loudly",
-        "dog bark, barking dog",
-        "aggressive dog barking and growling",
-    ],
-    "explosion": [
-        "a loud explosion or blast",
-        "bomb explosion, detonation, loud bang",
-        "explosion",
-    ],
-    "fighter_jet_engine": [
-        "jet engine roaring, aircraft engine noise",
-        "fighter jet flying overhead",
-        "loud turbine engine, jet engine",
-    ],
-    "gunfire": [
-        "the sound of gunfire or gunshots",
-        "gunshot, gunfire, shooting",
-        "firearms discharge, gun blast",
-    ],
-    "subway_train": [
-        "a subway train or metro train passing",
-        "train on tracks, railway, rumbling train",
-        "subway, metro, underground train",
-    ],
+EVENT_TO_AUDIOSET = {
+    "civil_defense_siren": ["Civil defense siren", "Siren"],
+    "dog_bark": ["Bark", "Dog"],
+    "gunfire": ["Gunshot, gunfire"],
+    "subway_train": ["Subway, metro, underground"],
 }
 
-EVENT_KEYS = list(EVENT_PROMPTS.keys())
+EVENT_KEYS = list(EVENT_TO_AUDIOSET.keys())
 
 # =========================================================
-# FLATTEN PROMPTS
+# BUILD AUDIOSET INDICES
 # =========================================================
 
-_ALL_PROMPTS = []
+_label_to_idx = {
+    lab: i
+    for i, lab in enumerate(AUDIOSET_LABELS)
+}
 
-_PROMPT_TO_EVENT_IDX = []
+EVENT_INDICES = {}
 
-for i, key in enumerate(EVENT_KEYS):
+for key, audioset_names in EVENT_TO_AUDIOSET.items():
 
-    for prompt in EVENT_PROMPTS[key]:
+    indices = []
 
-        _ALL_PROMPTS.append(prompt)
+    for name in audioset_names:
 
-        _PROMPT_TO_EVENT_IDX.append(i)
+        if name in _label_to_idx:
+
+            indices.append(
+                _label_to_idx[name]
+            )
+
+        else:
+
+            print(
+                f"WARNING: "
+                f"AudioSet label '{name}' "
+                f"not found for '{key}'"
+            )
+
+    EVENT_INDICES[key] = indices
+
+print("\nEvent -> AudioSet index mapping:")
+
+for key, idxs in EVENT_INDICES.items():
+
+    mapped = [
+        (AUDIOSET_LABELS[i], i)
+        for i in idxs
+    ]
+
+    print(f"  {key:25s} -> {mapped}")
 
 # =========================================================
 # LANGUAGE MAP
@@ -93,23 +90,20 @@ LANG_MAP = {
 # =========================================================
 
 WINDOW_CONFIGS = [
-    {"seconds": 1.0, "stride": 0.25},
-    {"seconds": 2.0, "stride": 0.5},
-    {"seconds": 4.0, "stride": 1.0},
+    {"seconds": 1.0, "stride": 0.5},
+    {"seconds": 2.0, "stride": 1.0},
+    {"seconds": 4.0, "stride": 2.0},
 ]
 
 # =========================================================
-# EVENT THRESHOLDS
+# PANNs THRESHOLDS
 # =========================================================
 
 EVENT_THRESHOLDS = {
-    "car_honk": 0.18,
-    "civil_defense_siren": 0.16,
-    "dog_bark": 0.17,
-    "explosion": 0.22,
-    "fighter_jet_engine": 0.15,
-    "gunfire": 0.22,
-    "subway_train": 0.14,
+    "civil_defense_siren": 0.08,
+    "dog_bark": 0.08,
+    "gunfire": 0.05,
+    "subway_train": 0.01,
 }
 
 # =========================================================
@@ -117,68 +111,56 @@ EVENT_THRESHOLDS = {
 # =========================================================
 
 INITIAL_PROMPTS = {
-    "mr": "कृपया सर्व आकडे शब्दांत लिहा.",
-    "ta": "தயவுசெய்து அனைத்து எண்களையும் வார்த்தைகளில் எழுதவும்.",
-    "te": "దయచేసి అన్ని సంఖ్యలను పదాలలో రాయండి."
+    "mr": "",
+    "ta": "",
+    "te": ""
 }
 
 # =========================================================
 # LOAD MODELS
 # =========================================================
 
-print("Loading Faster-Whisper...")
+print("\nLoading Faster-Whisper...")
 
 whisper_model = WhisperModel(
-    "large-v3-turbo",
+    "large-v3",
     device="cpu",
     compute_type="int8"
 )
 
-print("Loading CLAP...")
+print("\nLoading PANNs CNN14...")
 
-clap_model = laion_clap.CLAP_Module(
-    enable_fusion=False,
-    amodel='HTSAT-base'
-)
-
-clap_model.load_ckpt(
-    ckpt=str(
-        BASE / "music_speech_audioset_epoch_15_esc_89.98.pt"
-    )
-)
-
-# =========================================================
-# PRECOMPUTE TEXT EMBEDDINGS
-# =========================================================
-
-text_embed = clap_model.get_text_embedding(
-    _ALL_PROMPTS,
-    use_tensor=False
-)
-
-text_embed = text_embed / np.linalg.norm(
-    text_embed,
-    axis=-1,
-    keepdims=True
+panns_model = AudioTagging(
+    checkpoint_path=None,
+    device="cpu"
 )
 
 # =========================================================
 # PROCESS FILES
 # =========================================================
 
-scene_files = sorted(SCENES.glob("*.wav"))
+scene_files = sorted(
+    SCENES.glob("*.wav")
+)
 
 for audio_path in scene_files:
 
     print(f"\nProcessing: {audio_path.name}")
 
-    meta_file = METADATA / f"{audio_path.stem}.json"
+    meta_file = (
+        METADATA /
+        f"{audio_path.stem}.json"
+    )
 
     lang_code = None
 
     if meta_file.exists():
 
-        with open(meta_file, "r", encoding="utf-8") as f:
+        with open(
+            meta_file,
+            "r",
+            encoding="utf-8"
+        ) as f:
 
             meta = json.load(f)
 
@@ -199,8 +181,6 @@ for audio_path in scene_files:
             mono=True
         )
 
-        audio_for_whisper = whisper_audio
-
         if lang_code:
 
             prompt = INITIAL_PROMPTS.get(
@@ -209,7 +189,7 @@ for audio_path in scene_files:
             )
 
             segments, info = whisper_model.transcribe(
-                audio_for_whisper,
+                whisper_audio,
                 language=lang_code,
                 beam_size=5,
                 temperature=[
@@ -231,7 +211,7 @@ for audio_path in scene_files:
         else:
 
             segments, info = whisper_model.transcribe(
-                audio_for_whisper,
+                whisper_audio,
                 beam_size=5,
                 temperature=[
                     0.0,
@@ -254,9 +234,10 @@ for audio_path in scene_files:
             [seg.text for seg in segments]
         )
 
+        safe_transcript = transcript.encode('ascii', 'backslashreplace').decode('ascii')
         print(
             f"Transcript: "
-            f"{transcript[:80]}"
+            f"{safe_transcript[:80]}"
         )
 
     except Exception as e:
@@ -277,7 +258,10 @@ for audio_path in scene_files:
             {
                 "type": "speech",
                 "content": seg.text.strip(),
-                "time": f"{seg.start:.2f}-{seg.end:.2f}",
+                "time": (
+                    f"{seg.start:.2f}"
+                    f"-{seg.end:.2f}"
+                ),
                 "confidence": round(
                     float(seg.avg_logprob),
                     3
@@ -291,18 +275,19 @@ for audio_path in scene_files:
 
     audio, sr = librosa.load(
         audio_path,
-        sr=48000,
+        sr=32000,
         mono=True
     )
 
     # =====================================================
-    # SIMPLE SPEECH SUPPRESSION
+    # HPSS SPEECH SUPPRESSION
     # =====================================================
 
-    harmonic, percussive = librosa.effects.hpss(audio)
+    # harmonic, percussive = librosa.effects.hpss(
+    #     audio
+    # )
 
-    # keep environmental/percussive part
-    audio = percussive
+    # audio = percussive
 
     total_length = len(audio)
 
@@ -316,51 +301,56 @@ for audio_path in scene_files:
         for k in EVENT_KEYS
     }
 
-    def score_chunk(chunk, t_start, t_end):
+    # =====================================================
+    # SCORING FUNCTION
+    # =====================================================
+
+    def score_chunk(
+        chunk,
+        t_start,
+        t_end
+    ):
 
         if np.max(np.abs(chunk)) < 0.01:
             return
 
-        audio_embed = clap_model.get_audio_embedding_from_data(
-            x=[chunk],
-            use_tensor=False
+        waveform = chunk[np.newaxis, :]
+
+        clipwise_output, _ = (
+            panns_model.inference(waveform)
         )
 
-        audio_embed = audio_embed / np.linalg.norm(
-            audio_embed,
-            axis=-1,
-            keepdims=True
-        )
+        probs = clipwise_output[0]
 
-        similarity = (audio_embed @ text_embed.T)[0]
+        for key in EVENT_KEYS:
 
-        for ei, key in enumerate(EVENT_KEYS):
+            max_prob = max(
+                float(probs[idx])
+                for idx in EVENT_INDICES[key]
+            )
 
-            prompt_scores = [
-                float(similarity[pi])
-                for pi, eidx in enumerate(_PROMPT_TO_EVENT_IDX)
-                if eidx == ei
-            ]
+            if max_prob > best_score_per_event[key]:
 
-            max_score = max(prompt_scores)
-
-            if max_score > best_score_per_event[key]:
-
-                best_score_per_event[key] = max_score
+                best_score_per_event[key] = max_prob
 
                 best_window_per_event[key] = (
-                    f"{t_start:.2f}-{t_end:.2f}"
+                    f"{t_start:.2f}"
+                    f"-{t_end:.2f}"
                 )
 
     # =====================================================
-    # MULTI-SCALE WINDOWS
+    # MULTI-SCALE WINDOW SCANNING
     # =====================================================
 
     for cfg in WINDOW_CONFIGS:
 
-        window_size = int(cfg["seconds"] * sr)
+        window_size = int(
+            cfg["seconds"] * sr
+        )
 
-        stride_size = int(cfg["stride"] * sr)
+        stride_size = int(
+            cfg["stride"] * sr
+        )
 
         for start_idx in range(
             0,
@@ -368,9 +358,14 @@ for audio_path in scene_files:
             stride_size
         ):
 
-            end_idx = start_idx + window_size
+            end_idx = (
+                start_idx +
+                window_size
+            )
 
-            chunk = audio[start_idx:end_idx]
+            chunk = audio[
+                start_idx:end_idx
+            ]
 
             score_chunk(
                 chunk,
@@ -399,11 +394,12 @@ for audio_path in scene_files:
         print(
             f"{key:25s} "
             f"{best_score_per_event[key]:.3f} "
-            f"@ {best_window_per_event[key]}"
+            f"@ "
+            f"{best_window_per_event[key]}"
         )
 
     # =====================================================
-    # DETECTION
+    # EVENT DETECTION
     # =====================================================
 
     detected = []
@@ -419,9 +415,16 @@ for audio_path in scene_files:
             detected.append(
                 {
                     "type": "sound_event",
-                    "content": key.replace("_", " "),
-                    "time": best_window_per_event[key],
-                    "confidence": round(score, 3),
+                    "content": (
+                        key.replace("_", " ")
+                    ),
+                    "time": (
+                        best_window_per_event[key]
+                    ),
+                    "confidence": round(
+                        score,
+                        3
+                    ),
                 }
             )
 
@@ -440,7 +443,9 @@ for audio_path in scene_files:
 
         sound_events = [
             d for d in detected
-            if d["confidence"] >= top_conf - 0.08
+            if d["confidence"] >= (
+                top_conf - 0.20
+            )
         ]
 
     else:
@@ -461,7 +466,10 @@ for audio_path in scene_files:
         "events": sound_events,
     }
 
-    out_file = OUT / f"{audio_path.stem}.json"
+    out_file = (
+        OUT /
+        f"{audio_path.stem}.json"
+    )
 
     with open(
         out_file,

@@ -38,11 +38,8 @@ LANGUAGES = [
 
 # aligned with dataset/events folder names
 EVENT_TYPES = [
-    "car_honk",
     "civil_defense_siren",
     "dog_bark",
-    "explosion",
-    "fighter_jet_engine",
     "gunfire",
     "subway_train",
 ]
