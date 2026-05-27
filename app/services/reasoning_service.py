@@ -8,12 +8,22 @@ BASE = Path(__file__).resolve().parent.parent.parent
 PROMPT_FILE = BASE / "archive" / "prompts" / "prompt_v1.txt"
 
 OLLAMA_EXE = os.environ.get("OLLAMA_EXE", "ollama")
-MODEL = "qwen2.5:1.5b"
+MODEL = os.environ.get("OLLAMA_MODEL", "qwen2.5:1.5b")
 
 
-with open(PROMPT_FILE, "r", encoding="utf-8") as f:
+def _load_system_prompt():
+    """Load the system prompt from disk, with a sensible fallback."""
+    if PROMPT_FILE.exists():
+        return PROMPT_FILE.read_text(encoding="utf-8")
+    print(f"WARNING: Prompt file not found at {PROMPT_FILE}, using default prompt.")
+    return (
+        "You are an Audio Language Model reasoning engine. "
+        "Analyze the provided perception JSON and output STRICT JSON with keys: "
+        "summary, environment, events, inference, risk_level."
+    )
 
-    SYSTEM_PROMPT = f.read()
+
+SYSTEM_PROMPT = _load_system_prompt()
 
 
 def run_reasoning(perception_data):
@@ -68,7 +78,7 @@ Perception JSON:
             "risk_level": "Unknown",
         }
 
-        # PARSE JSON
+    # PARSE JSON
 
     try:
 
@@ -76,7 +86,7 @@ Perception JSON:
 
         return parsed
 
-        # FALLBACK
+    # FALLBACK
 
     except Exception:
 

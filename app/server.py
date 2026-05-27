@@ -1,4 +1,6 @@
 import json
+import os
+import re
 from pathlib import Path
 
 from fastapi import FastAPI, UploadFile, File, Request
@@ -19,20 +21,30 @@ from app.services.perception_service import run_perception
 
 from app.services.reasoning_service import run_reasoning
 
+# Resolve paths relative to this file so the server works from any cwd
+_APP_DIR = Path(__file__).resolve().parent
+
 app = FastAPI()
 
+app.mount("/static", StaticFiles(directory=str(_APP_DIR / "static")), name="static")
+
+templates = Jinja2Templates(directory=str(_APP_DIR / "templates"))
 
 
-app.mount("/static", StaticFiles(directory="app/static"), name="static")
-
-templates = Jinja2Templates(directory="app/templates")
-
-
-BASE = Path(__file__).resolve().parent.parent
+BASE = _APP_DIR.parent
 
 UPLOADS = BASE / "uploads"
 
 UPLOADS.mkdir(parents=True, exist_ok=True)
+
+
+def _safe_filename(filename: str) -> str:
+    """Strip path separators and dangerous characters from an uploaded filename."""
+    # Take only the basename (ignore directory components)
+    name = Path(filename).name
+    # Remove anything that is not alphanumeric, hyphen, underscore, or dot
+    name = re.sub(r"[^\w\-.]", "_", name)
+    return name or "upload.wav"
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -86,9 +98,10 @@ async def upload_audio(file: UploadFile = File(...)):
             status_code=400, content={"error": "Only .wav files allowed"}
         )
 
-        # SAVE AUDIO
+    # SAVE AUDIO
 
-    save_path = UPLOADS / file.filename
+    safe_name = _safe_filename(file.filename)
+    save_path = UPLOADS / safe_name
 
     with open(save_path, "wb") as f:
 
@@ -96,7 +109,7 @@ async def upload_audio(file: UploadFile = File(...)):
 
         f.write(content)
 
-        # RUN PERCEPTION
+    # RUN PERCEPTION
 
     perception = run_perception(save_path)
 
@@ -107,25 +120,27 @@ async def upload_audio(file: UploadFile = File(...)):
     # SQLITE
     db: Session = SessionLocal()
 
-    audio_result = AudioResult(
-        filename=file.filename,
-        transcript=perception["full_transcript"],
-        reasoning=json.dumps(reasoning, ensure_ascii=False)
-    )
+    try:
+        audio_result = AudioResult(
+            filename=safe_name,
+            transcript=perception["full_transcript"],
+            reasoning=json.dumps(reasoning, ensure_ascii=False)
+        )
 
-    db.add(audio_result)
+        db.add(audio_result)
 
-    db.commit()
+        db.commit()
 
-    db.refresh(audio_result)
+        db.refresh(audio_result)
 
-    db.close()
+    finally:
+        db.close()
 
     # RESPONSE
 
     return {
         "message": "Inference complete",
-        "filename": file.filename,
+        "filename": safe_name,
         "perception": perception,
         "reasoning": reasoning,
         "database_id": audio_result.id,

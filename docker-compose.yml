@@ -1,0 +1,44 @@
+services:
+  web:
+    build: .
+    ports:
+      - "${APP_PORT:-8000}:8000"
+    env_file:
+      - .env
+    volumes:
+      - ./uploads:/app/uploads
+      - ./database:/app/database
+    depends_on:
+      - ollama
+    restart: unless-stopped
+
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    restart: unless-stopped
+
+  # Run the offline pipeline as a one-shot job:
+  #   docker compose run --rm pipeline
+  pipeline:
+    build: .
+    command: ["python", "main.py"]
+    env_file:
+      - .env
+    volumes:
+      - ./uploads:/app/uploads
+      - ./database:/app/database
+      - ./scenes:/app/scenes
+      - ./perception:/app/perception
+      - ./reasoning:/app/reasoning
+      - ./clean:/app/clean
+      - ./dataset:/app/dataset
+    depends_on:
+      - ollama
+    profiles:
+      - batch
+
+volumes:
+  ollama_data:

@@ -9,7 +9,6 @@ from pathlib import Path
 
 import librosa
 import numpy as np
-import torch
 from faster_whisper import WhisperModel
 from panns_inference import AudioTagging, labels as AUDIOSET_LABELS
 
