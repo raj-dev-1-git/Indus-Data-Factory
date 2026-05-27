@@ -53,10 +53,10 @@ for meta_file in tqdm(scene_files):
 
         mix[start_sample:end_sample] += y[:clip_len]
 
-    # normalize
+    # Soft-clip: only normalize if peak exceeds 1.0 (preserves gain_db intent)
     peak = np.max(np.abs(mix))
 
-    if peak > 0:
+    if peak > 1.0:
         mix = mix / peak
 
     out_path = OUT_AUDIO / f"{scene['scene_id']}.wav"

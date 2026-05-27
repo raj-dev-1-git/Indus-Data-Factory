@@ -20,8 +20,17 @@ def word_error_rate(reference, hypothesis):
     reference = re.sub(r'\d+(\.\d+)?', '', reference)
     hypothesis = re.sub(r'\d+(\.\d+)?', '', hypothesis)
     
-    # Remove common Marathi number words to normalize digits-vs-words discrepancy
-    num_words = ["एक", "दोन", "तीन", "चार", "पाच", "सहा", "सात", "आठ", "नऊ", "दहा", "हजार", "शे", "शंभर", "पन्नास", "पूर्णांक", "टक्के", "टक्क्यांनी"]
+    # Remove common number words across languages to normalize digits-vs-words discrepancy
+    LANG_NUM_WORDS = {
+        "mr": ["एक", "दोन", "तीन", "चार", "पाच", "सहा", "सात", "आठ", "नऊ", "दहा", "हजार", "शे", "शंभर", "पन्नास", "पूर्णांक", "टक्के", "टक्क्यांनी"],
+        "ta": ["ஒன்று", "இரண்டு", "மூன்று", "நான்கு", "ஐந்து", "ஆறு", "ஏழு", "எட்டு", "ஒன்பது", "பத்து"],
+        "te": ["ఒకటి", "రెండు", "మూడు", "నాలుగు", "ఐదు", "ఆరు", "ఏడు", "ఎనిమిది", "తొమ్మిది", "పది"],
+    }
+    
+    num_words = []
+    for words in LANG_NUM_WORDS.values():
+        num_words.extend(words)
+
     for word in num_words:
         reference = re.sub(fr'(?<!\S){word}(?!\S)', '', reference)
         hypothesis = re.sub(fr'(?<!\S){word}(?!\S)', '', hypothesis)
@@ -69,7 +78,6 @@ def character_error_rate(reference, hypothesis):
     Calculates Character Error Rate (CER), which is much better for languages 
     like Tamil and Marathi that have heavy agglutination and spacing differences.
     """
-    import re
     # Remove all spaces and punctuation for a pure character match
     ref_chars = list(re.sub(r'[\s\W_]+', '', reference.lower()))
     hyp_chars = list(re.sub(r'[\s\W_]+', '', hypothesis.lower()))
@@ -95,27 +103,43 @@ def character_error_rate(reference, hypothesis):
 
 
 def calculate_event_metrics(true_events, pred_events):
-    # If there are no ground truth events and no predicted events, it's a perfect match
+
+    # Ignore empty scenes entirely
     if not true_events and not pred_events:
-        return 1.0, 1.0, 1.0
-        
+        return None
+
     true_set = set(true_events)
     pred_set = set(pred_events)
-    
+
     tp = len(true_set.intersection(pred_set))
     fp = len(pred_set - true_set)
     fn = len(true_set - pred_set)
-    
-    precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
-    recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
-    f1 = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0.0
-    return precision, recall, f1
 
+    precision = (
+        tp / (tp + fp)
+        if (tp + fp) > 0
+        else 0.0
+    )
+
+    recall = (
+        tp / (tp + fn)
+        if (tp + fn) > 0
+        else 0.0
+    )
+
+    f1 = (
+        2 * (precision * recall)
+        / (precision + recall)
+        if (precision + recall) > 0
+        else 0.0
+    )
+
+    return precision, recall, f1
 
 perception_files = sorted(PERCEPTION.glob("*.json"))
 
 all_wer = []
-
+all_cer = []
 all_f1 = []
 
 for perception_file in perception_files:
@@ -156,17 +180,30 @@ for perception_file in perception_files:
     
     true_events = [track.get("event_type", "").lower() for track in metadata.get("tracks", []) if track.get("role") == "event"]
     
-    precision, recall, f1 = calculate_event_metrics(true_events, pred_events)
+
+    metrics = calculate_event_metrics(
+        true_events,
+        pred_events
+    )
+
+    # skip scenes with no events
+    if metrics is None:
+        print("Skipping empty-event scene.")
+        f1 = float('nan')
+    else:
+        precision, recall, f1 = metrics
+        all_f1.append(f1)
 
     all_wer.append(wer)
-    
+
     # Calculate CER
-    cer = character_error_rate(ground_truth, predicted)
-    
-    all_f1.append(f1)
+    cer = character_error_rate(
+        ground_truth,
+        predicted
+    )
+    all_cer.append(cer)
 
     print(f"{perception_file.name}")
-
     print(f"WER: {wer:.3f} | CER: {cer:.3f} | F1: {f1:.3f}")
 
     safe_gt = ground_truth.encode('ascii', 'backslashreplace').decode('ascii')
@@ -180,16 +217,14 @@ for perception_file in perception_files:
 if all_wer:
 
     avg_wer = sum(all_wer) / len(all_wer)
-    
-    # Optional: also compute average CER if you're saving it to a list
-    # But for now we just show it per file to see the difference.
-    
+    avg_cer = sum(all_cer) / len(all_cer) if all_cer else 0.0
     avg_f1 = sum(all_f1) / len(all_f1) if all_f1 else 0.0
 
     print(f"\nAverage WER: {avg_wer:.3f}")
-    
+    print(f"Average CER: {avg_cer:.3f}")
     print(f"Average Event F1: {avg_f1:.3f}")
 
 else:
 
     print("No files found.")
+

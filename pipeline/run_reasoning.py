@@ -1,4 +1,5 @@
 import json
+import os
 import subprocess
 from pathlib import Path
 
@@ -12,8 +13,12 @@ PROMPT_FILE = BASE / "archive" / "prompts" / "prompt_v1.txt"
 
 REASONING.mkdir(parents=True, exist_ok=True)
 
+# Clean old reasoning files
+for old in REASONING.glob("*.json"):
+    old.unlink()
 
-OLLAMA_EXE = r"C:\Users\salun\AppData\Local\Programs" r"\Ollama\ollama.exe"
+
+OLLAMA_EXE = os.environ.get("OLLAMA_EXE", "ollama")
 
 MODEL = "qwen2.5:1.5b"
 
@@ -55,6 +60,7 @@ Perception JSON:
         capture_output=True,
         text=True,
         encoding="utf-8",
+        timeout=120,
     )
 
     output = result.stdout.strip()

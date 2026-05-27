@@ -1,21 +1,35 @@
 # Audio Intelligence Pipeline & API
 
-This repository contains a dual-mode Audio Intelligence system designed for multilingual speech-to-text (ASR) transcription and zero-shot temporal event detection.
+This repository contains a dual-mode Audio Intelligence system designed for multilingual Indic speech-to-text (ASR) transcription and zero-shot temporal event detection.
 
 1. **Offline Pipeline**: Batch processes audio scenes, performs language detection, ASR transcription, and semantic event detection.
 2. **Online REST API**: A FastAPI backend that provides these capabilities as a real-time web service.
 
 ## Architecture
 
-* **Perception Engine**: Utilizes `OpenAI Whisper` (large-v3) for multilingual Speech-to-Text, enhanced with native `initial_prompt` tuning for robust digit-to-word normalization. Audio event detection is powered by `LAION CLAP` operating in a zero-shot capacity.
-* **Reasoning Engine**: Processes the transcriptions and events to provide deeper contextual insights.
+* **Perception Engine**: Utilizes `Faster-Whisper` (large-v3-turbo, int8 quantized for CPU) for multilingual Speech-to-Text, enhanced with native `initial_prompt` tuning for robust digit-to-word normalization. Audio event detection is powered by `LAION CLAP` operating in a zero-shot capacity with a multi-prompt ensemble (3 prompts per event) and multi-scale sliding windows (3s/1s stride + 5s/1.5s stride + full-clip) for temporal localization.
+* **Reasoning Engine**: Processes the transcriptions and events via a local LLM (Qwen 2.5 1.5B through Ollama) to provide contextual insights.
 * **Database**: SQLite with SQLAlchemy ORM to track inference results over time.
+
+## Supported Languages
+
+| Language | Code | Status |
+|----------|------|--------|
+| Marathi  | mr   | ✅ Active |
+| Tamil    | ta   | ✅ Active |
+| Telugu   | te   | ✅ Active |
+
+## Event Detection Labels
+
+The CLAP zero-shot detector targets 7 threat-relevant and contextual event categories:
+
+`car_honk` · `civil_defense_siren` · `dog_bark` · `explosion` · `fighter_jet_engine` · `gunfire` · `subway_train`
 
 ## Dataset & Scene Generation
 
 The audio scenes evaluated in this pipeline are synthetically mixed from raw datasets:
 * **Audio Events**: Sourced from Google's AudioSet ontology, specifically targeting threat signatures (e.g., gunfire, explosions, sirens) and contextual anchors (e.g., subway trains, dog barks). The raw clips are mined from YouTube using `yt-dlp`.
-* **Speech**: Multilingual speech datasets (Marathi, Tamil, Bengali, Telugu).
+* **Speech**: Multilingual speech datasets (Marathi, Tamil, Telugu).
 
 To generate the evaluation audio scenes, the pipeline runs two key scripts:
 1. `generate_mixer_logs.py`: Plans the temporal overlap and sequencing of speech and event audio.
@@ -24,20 +38,37 @@ To generate the evaluation audio scenes, the pipeline runs two key scripts:
 ## Project Structure
 
 ```text
-├── app/                  # FastAPI Application
-│   ├── services/         # Core AI Logic (Perception, Reasoning)
-│   ├── static/           # Web Assets
-│   ├── templates/        # HTML Templates
-│   ├── database.py       # SQLite Configuration
-│   ├── models.py         # SQLAlchemy Models
-│   └── server.py         # Main FastAPI Endpoints
-├── pipeline/             # Offline Batch Processing Scripts
-│   ├── evaluate_asr.py   # Computes Word Error Rate (WER) and Character Error Rate (CER)
-│   ├── run_perception.py # Batch ASR and Audio Event Detection
-│   └── run_reasoning.py  # Batch Context Analysis
-├── main.py               # Entry point to execute the offline pipeline
-└── requirements.txt      # Python dependencies
+├── app/                        # FastAPI Application
+│   ├── services/               # Core AI Logic (Perception, Reasoning)
+│   │   ├── perception_service.py   # Unified perception engine (same as pipeline)
+│   │   └── reasoning_service.py    # LLM reasoning via Ollama
+│   ├── static/                 # Web Assets (JS, CSS)
+│   ├── templates/              # HTML Templates
+│   ├── database.py             # SQLite Configuration
+│   ├── models.py               # SQLAlchemy Models
+│   └── server.py               # Main FastAPI Endpoints
+├── pipeline/                   # Offline Batch Processing Scripts
+│   ├── generate_mixer_logs.py  # Synthetic scene metadata generator
+│   ├── render_scenes.py        # Audio scene renderer/mixer
+│   ├── run_perception.py       # Batch ASR + CLAP event detection
+│   ├── evaluate_asr.py         # Computes WER, CER, and Event F1
+│   ├── run_reasoning.py        # Batch LLM context analysis
+│   └── diagnose_clap.py        # CLAP threshold tuning diagnostic
+├── diagnose.py                 # Pipeline alignment diagnostic
+├── main.py                     # Entry point for the offline pipeline
+└── requirements.txt            # Python dependencies
 ```
+
+## Model Downloads
+
+This project requires two model checkpoint files that are **not** included in the repository (`.gitignore`d due to size):
+
+| File | Size | Source |
+|------|------|--------|
+| `music_speech_audioset_epoch_15_esc_89.98.pt` | ~2.3 GB | [LAION CLAP](https://github.com/LAION-AI/CLAP) |
+| `630k-audioset-best.pt` | ~1.8 GB | [LAION CLAP](https://github.com/LAION-AI/CLAP) |
+
+Place these files in the project root directory before running.
 
 ## Setup Instructions
 
@@ -53,16 +84,27 @@ To generate the evaluation audio scenes, the pipeline runs two key scripts:
    pip install -r requirements.txt
    ```
 
+3. **Install Ollama** (for reasoning layer)
+   - Download from [ollama.com](https://ollama.com)
+   - Pull the model: `ollama pull qwen2.5:1.5b`
+   - Optionally set `OLLAMA_EXE` environment variable if Ollama is not in PATH
+
 ## How to Run
 
-### 1. Run the Offline Pipeline
+### 1. Run the Pipeline Diagnostic
+Verify all components are aligned before running:
+```bash
+python diagnose.py
+```
+
+### 2. Run the Offline Pipeline
 To process all audio scenes sequentially and generate metrics:
 ```bash
 python main.py
 ```
-This will run the audio mixing, ASR perception, reasoning, and evaluation in batch mode. The evaluation script outputs both Word Error Rate (WER) and Character Error Rate (CER), which is highly optimized for agglutinative Indic languages.
+This will run the audio mixing, ASR perception, reasoning, and evaluation in batch mode. The evaluation script outputs Word Error Rate (WER), Character Error Rate (CER), and Event Detection F1.
 
-### 2. Run the Online Web Server
+### 3. Run the Online Web Server
 To start the real-time API:
 ```bash
 fastapi dev app/server.py
@@ -70,7 +112,10 @@ fastapi dev app/server.py
 * The web interface will be available at `http://127.0.0.1:8000`
 * You can interact with the `/upload` endpoint to process `.wav` files dynamically.
 
-## Recent Pipeline Improvements
-* **CER Evaluation**: Integrated Character Error Rate calculation to accurately measure performance on highly agglutinative languages.
-* **Whisper Normalization**: Integrated `whisper.normalizers` and native language `initial_prompt` conditioning to correctly parse numerical values into target language alphabets.
-* **CLAP Temporal Tuning**: Adjusted sliding window detection logic (1.0s window, 0.5s stride) to aggressively filter false positives and correctly detect transient audio events.
+## Key Design Decisions
+
+* **CPU-Only Inference**: All models run on CPU with int8 quantization. Whisper uses `large-v3-turbo` (optimized for speed) with beam search and temperature fallbacks.
+* **Multi-Prompt CLAP Ensemble**: Each event type has 3 prompt variations. The max cosine similarity across prompts is used per event, improving recall without training.
+* **Multi-Scale Windowing**: Short windows (3s) catch impulsive events (gunfire), long windows (5s) catch sustained events (sirens), and full-clip gives CLAP its native 10s context.
+* **Unified Codepath**: Both the offline pipeline and web API use the exact same perception and reasoning engines — same models, same parameters, same results.
+* **CER over WER**: Character Error Rate is the primary metric for agglutinative Indic languages where word boundary differences inflate WER artificially.

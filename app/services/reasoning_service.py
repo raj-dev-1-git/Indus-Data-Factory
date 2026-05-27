@@ -1,4 +1,5 @@
 import json
+import os
 import subprocess
 from pathlib import Path
 
@@ -6,11 +7,7 @@ BASE = Path(__file__).resolve().parent.parent.parent
 
 PROMPT_FILE = BASE / "archive" / "prompts" / "prompt_v1.txt"
 
-
-import os
-
 OLLAMA_EXE = os.environ.get("OLLAMA_EXE", "ollama")
-# MODEL = "qwen2.5:7b-instruct"
 MODEL = "qwen2.5:1.5b"
 
 
@@ -43,6 +40,7 @@ Perception JSON:
         capture_output=True,
         text=True,
         encoding="utf-8",
+        timeout=120,
     )
 
     # OUTPUT

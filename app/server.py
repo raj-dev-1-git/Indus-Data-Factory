@@ -60,7 +60,7 @@ def get_history():
             if r.reasoning:
                 try:
                     reasoning_data = json.loads(r.reasoning)
-                except:
+                except Exception:
                     reasoning_data = {"summary": "Error parsing reasoning"}
             
             history_list.append({
