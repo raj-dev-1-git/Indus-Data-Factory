@@ -52,9 +52,7 @@ To generate the evaluation audio scenes, the pipeline runs two key scripts:
 │   ├── render_scenes.py        # Audio scene renderer/mixer
 │   ├── run_perception.py       # Batch ASR + PANNs event detection
 │   ├── evaluate_asr.py         # Computes WER, CER, and Event F1
-│   ├── run_reasoning.py        # Batch LLM context analysis
-│   └── diagnose_panns.py       # PANNs threshold tuning diagnostic
-├── diagnose.py                 # Pipeline alignment diagnostic
+│   └── run_reasoning.py        # Batch LLM context analysis
 ├── main.py                     # Entry point for the offline pipeline
 └── requirements.txt            # Python dependencies
 ```
@@ -84,20 +82,14 @@ The PANNs CNN14 checkpoint (~320 MB) is automatically downloaded on first run vi
 
 ## How to Run
 
-### 1. Run the Pipeline Diagnostic
-Verify all components are aligned before running:
-```bash
-python diagnose.py
-```
-
-### 2. Run the Offline Pipeline
+### 1. Run the Offline Pipeline
 To process all audio scenes sequentially and generate metrics:
 ```bash
 python main.py
 ```
 This will run the audio mixing, ASR perception, reasoning, and evaluation in batch mode. The evaluation script outputs Word Error Rate (WER), Character Error Rate (CER), and Event Detection F1.
 
-### 3. Run the Online Web Server
+### 2. Run the Online Web Server
 To start the real-time API:
 ```bash
 fastapi dev app/server.py
